@@ -49,7 +49,7 @@ type 指定 Storage 运行的环境
   - clear
   - key
 
-  > 细心观察，你可以发现所要求的值与 `window.sessionStorage`、`window.localStorage` api 相同
+  > 细心观察，你可以发现所要求的值与 `window.sessionStorage`、`window.localStorage` api 相同，如果你想借鉴下，可以查看 [polyfill.ts](/src/polyfill.ts)
 
 #### set(key: string, value: any, options?: {expirationTime?: number}):this
 
@@ -88,7 +88,7 @@ type 指定 Storage 运行的环境
 
 字段名称是否存在
 
-#### get<T>(key: string, defaultValue?: any): T
+#### get\<T>(key: string, defaultValue?: any): T
 
 - key
 
@@ -104,11 +104,11 @@ type 指定 Storage 运行的环境
 
   如果字段不存在或者过期返回的默认值
 
-#### keys():Array<string>
+#### keys():Array\<string>
 
 返回所有储存字段名称
 
-#### values():Array<unknown>
+#### values():Array\<unknown>
 
 返回所有储存字段值
 
