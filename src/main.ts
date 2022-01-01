@@ -16,6 +16,7 @@ type Value =
   | object
   | string;
 
+const beOverdue = Symbol('beOverdue');
 export class NextStorage {
   private storage: Storage;
   constructor(type?: Type) {
@@ -63,10 +64,10 @@ export class NextStorage {
     return keys.indexOf(key) !== -1;
   }
 
-  get<T = unknown>(key: string, defaultValue?: any): T {
+  private _get<T>(key: string) {
     const value = this.storage.getItem(key);
     if (typeof value !== 'string') {
-      return defaultValue;
+      return undefined;
     }
     try {
       const obj = JSON.parse(value) as Value;
@@ -75,16 +76,24 @@ export class NextStorage {
       }
       // 如果过期，清空时间
       if ('expirationTime' in obj && isExpired(obj.expirationTime)) {
-        this.delete(key);
-        return defaultValue;
+        return beOverdue;
       }
       if ('expirationTime' in obj) {
         return obj.__value;
       }
       return obj as unknown as T;
     } catch {
-      return defaultValue;
+      return undefined;
     }
+  }
+
+  get<T = unknown>(key: string, defaultValue?: T): T {
+    const value = this._get(key);
+    if (value === beOverdue) {
+      this.delete(key);
+      return defaultValue as T;
+    }
+    return value === undefined ? defaultValue : value;
   }
 
   keys() {
@@ -100,8 +109,9 @@ export class NextStorage {
     const keys = this.keys();
     const values: Array<unknown> = [];
     each(keys, (key) => {
-      const value = this.get(key);
-      if (value !== undefined) {
+      const value = this._get(key);
+      // 如果不是过期加入
+      if (value !== beOverdue) {
         values.push(value);
       }
     });
@@ -113,13 +123,22 @@ export class NextStorage {
     const values: Array<[string, unknown]> = [];
     const keys = this.keys();
     each(keys, (key) => {
-      const value = this.get(key);
-      if (value !== undefined) {
+      const value = this._get(key);
+      if (value !== beOverdue) {
         values.push([key, value]);
       }
     });
 
     return values;
+  }
+
+  getAll() {
+    const all = this.entries();
+    const obj: Record<string, unknown> = {};
+    each(all, ([key, value]) => {
+      obj[key] = value;
+    });
+    return obj;
   }
 
   clear() {

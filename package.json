@@ -1,6 +1,6 @@
 {
   "name": "@boses/next-storage",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "preview": false,
   "license": "MIT",
   "description": "下一代 Storage，支持 json 序列化、超时、深浅 merge 等特性",

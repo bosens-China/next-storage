@@ -7,113 +7,99 @@ let storage;
 let polyfill;
 beforeEach(() => {
   polyfill = new Polyfill();
+  polyfill.obj = {
+    posts: JSON.stringify([{ id: 1, title: 'json-server', author: 'typicode' }]),
+    comments: JSON.stringify([{ id: 1, body: 'some comment', postId: 1 }]),
+    profile: JSON.stringify({ name: 'typicode' }),
+  };
   storage = new NextStorage(polyfill);
 });
 
-const wait = (time) => new Promise((resolve) => setTimeout(resolve, time));
-
-test(`NextStorage set ont`, () => {
-  storage.set('test', { name: 'zhangsan' });
-  expect(storage.length).toBe(1);
-  expect(polyfill.length).toBe(1);
-  expect(polyfill.obj).toEqual({ test: JSON.stringify({ name: 'zhangsan' }) });
-  expect(storage.get('test')).toEqual({ name: 'zhangsan' });
-});
-test(`NextStorage set tow`, async () => {
-  storage.set('test', { name: 'zhangsan' }, { expirationTime: 100 });
-  await wait(200);
-  expect(storage.get('test')).toBeUndefined();
-  expect(polyfill.obj).toEqual({});
+test(`set`, () => {
+  storage.set('test', { name: 'test' });
+  expect(storage.get('test')).toEqual({ name: 'test' });
 });
 
-test(`NextStorage get`, () => {
-  expect(storage.get(`none`, null)).toBeNull();
-  expect(storage.set('test', 1).get('test')).toBe(1);
-});
-
-test(`NextStorage delete`, () => {
-  expect(storage.length).toBe(0);
-  storage.delete();
-  expect(storage.length).toBe(0);
-  storage.set('test', 1);
-  expect(storage.length).toBe(1);
-  expect(storage.delete('test').length).toBe(0);
-});
-
-test(`NextStorage has`, () => {
-  expect(storage.has('test')).toBeFalsy();
-  expect(storage.set('test', 1).has('test')).toBeTruthy();
-  expect(storage.delete('test').has('test')).toBeFalsy();
-});
-
-test(`NextStorage keys,values,entries`, () => {
-  expect(storage.keys()).toEqual([]);
-  expect(storage.values()).toEqual([]);
-  expect(storage.entries()).toEqual([]);
-  expect(storage.set('test', 1).keys()).toEqual(['test']);
-  expect(storage.values()).toEqual([1]);
-  expect(storage.entries()).toEqual([['test', 1]]);
-});
-
-test(`NextStorage clear`, () => {
-  storage.set('a1', 1).set('a2', 2);
+test(`delete`, () => {
+  storage.delete('posts');
   expect(storage.length).toBe(2);
-  expect(storage.values()).toEqual([1, 2]);
-  storage.clear();
-  expect(storage.length).toBe(0);
-  expect(storage.keys()).toEqual([]);
 });
 
-test(`NextStorage merge`, () => {
-  storage.set('test', { name: 'zhangsan' });
-  expect(storage.get('test')).toEqual({ name: 'zhangsan' });
-  // 追加
-  storage.merge('test', { age: 18 });
-  expect(storage.get('test')).toEqual({ name: 'zhangsan', age: 18 });
+test(`has`, () => {
+  expect(storage.has('posts')).toBeTruthy();
+  storage.delete('posts');
+  expect(storage.has('posts')).toBeFalsy();
 });
 
-test(`NextStorage merge deep`, () => {
-  const obj1 = {
-    a: 1,
-    b: {
-      name: 'zhangsan',
-      c: 2,
-    },
-  };
-  const obj2 = {
-    b: {
-      c: [5],
-    },
-  };
-  storage.set('test', obj1);
-  storage.merge('test', obj2, { deep: true });
-  expect(storage.get('test')).toEqual({
-    a: 1,
-    b: {
-      name: 'zhangsan',
-      c: [5],
-    },
+test(`get`, () => {
+  expect(storage.get('posts')).toEqual([{ id: 1, title: 'json-server', author: 'typicode' }]);
+});
+
+test(`keys`, () => {
+  expect(storage.keys()).toEqual(['posts', 'comments', 'profile']);
+});
+
+test(`values`, () => {
+  expect(storage.values()).toEqual([
+    [{ id: 1, title: 'json-server', author: 'typicode' }],
+    [{ id: 1, body: 'some comment', postId: 1 }],
+    { name: 'typicode' },
+  ]);
+});
+
+test(`entries`, () => {
+  expect(storage.entries()).toEqual([
+    ['posts', [{ id: 1, title: 'json-server', author: 'typicode' }]],
+    ['comments', [{ id: 1, body: 'some comment', postId: 1 }]],
+    ['profile', { name: 'typicode' }],
+  ]);
+});
+
+test(`getAll`, () => {
+  expect(storage.getAll()).toEqual({
+    posts: [{ id: 1, title: 'json-server', author: 'typicode' }],
+    comments: [{ id: 1, body: 'some comment', postId: 1 }],
+    profile: { name: 'typicode' },
   });
 });
 
-test(`NextStorage merge Not an object`, async () => {
-  storage.set('test', 1);
-  storage.merge('test', { name: 1 });
-  expect(storage.get('test')).toEqual({ name: 1 });
+test(`clear`, () => {
+  expect(storage.length).toBe(3);
   storage.clear();
+  expect(storage.length).toBe(0);
+});
+
+test(`length`, () => {
+  expect(storage.length).toBe(3);
+  storage.set('test', { name: 'test' });
+  expect(storage.length).toBe(4);
+});
+
+test(`merge`, () => {
+  storage.merge('profile', { age: 14 });
+  expect(storage.get('profile')).toEqual({
+    name: 'typicode',
+    age: 14,
+  });
+});
+
+/*
+ * 深特性测试
+ */
+const wait = (time) => new Promise((resolve) => setTimeout(resolve, time));
+test(`set 超时`, async () => {
+  storage.set('test', { name: 'zhangsan' }, { expirationTime: 100 });
+  await wait(200);
+  expect(storage.get('test')).toBeUndefined();
+});
+
+test(`merge and null`, async () => {
   storage.set('test', { name: 1 });
   storage.merge('test', null);
   expect(storage.get('test')).toBeNull();
 });
 
-test(`NextStorage merge be overdue`, async () => {
-  storage.set('test', { name: 'zhangsan' }, { expirationTime: 100 });
-  await wait(200);
-  storage.merge('test', { name: 1 });
-  expect(storage.get('test')).toEqual({ name: 1 });
-});
-
-test(`NextStorage testing`, () => {
+test(`testing`, () => {
   // 默认为node环境没有window，为false
   expect(storage.testing()).toBeFalsy();
   globalThis.window = {
@@ -123,7 +109,7 @@ test(`NextStorage testing`, () => {
   globalThis.window = null;
 });
 
-test(`NextStorage isStorage`, () => {
+test(`isStorage`, () => {
   expect(storage.isStorage({ get: () => {} })).toBeFalsy();
   globalThis.window = {
     localStorage: new Polyfill(),
@@ -132,7 +118,7 @@ test(`NextStorage isStorage`, () => {
   globalThis.window = null;
 });
 
-test(`NextStorage constructor`, () => {
+test(`constructor`, () => {
   const fn1 = new Polyfill();
   fn1.name = 'test';
   const storageTest1 = new NextStorage(fn1);
@@ -144,4 +130,9 @@ test(`NextStorage constructor`, () => {
 test(`sessionStorage, localStorage`, () => {
   expect(sessionStorage.storage).toEqual(new Polyfill());
   expect(localStorage.storage).toEqual(new Polyfill());
+});
+
+test(`get default`, () => {
+  storage.clear();
+  expect(storage.get('test', 'test')).toBe('test');
 });
